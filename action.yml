@@ -14,6 +14,7 @@ runs:
       run: |
         DRAFT_TAG=$(gh api repos/{owner}/{repo}/releases --jq '[.[] | select(.draft==true) | select(.author.login=="github-actions[bot]") | .tag_name] | first // empty')
         echo "draft-tag=$DRAFT_TAG" >> $GITHUB_OUTPUT
+
     - name: Generate release notes
       id: notes
       shell: bash
@@ -28,6 +29,7 @@ runs:
         echo "body<<EOF" >> $GITHUB_OUTPUT
         echo "$NOTES" >> $GITHUB_OUTPUT
         echo "EOF" >> $GITHUB_OUTPUT
+
     - name: Update existing draft release
       if: steps.check-draft.outputs.draft-tag != ''
       shell: bash
@@ -41,6 +43,7 @@ runs:
           --target ${{ github.sha }} \
           --title "$VERSION" \
           --notes "$NOTES_BODY"
+
     - name: Create draft release
       if: steps.check-draft.outputs.draft-tag == ''
       shell: bash

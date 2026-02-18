@@ -29,10 +29,10 @@ Calculates the next version based on the latest published release and `package.j
 
 **Outputs**
 
-| Output | Description |
-|--------|-------------|
+| Output    | Description                                      |
+| --------- | ------------------------------------------------ |
 | `version` | The calculated next version (without `v` prefix) |
-| `latest` | The latest published release tag |
+| `latest`  | The latest published release tag                 |
 
 ---
 

@@ -1,4 +1,4 @@
-name: Get Next Version
+name: Get next version
 description: Calculate the next version based on latest release and package.json
 
 outputs:
