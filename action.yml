@@ -4,9 +4,6 @@ description: Creates or updates a draft GitHub release with auto-generated relea
 runs:
   using: composite
   steps:
-    - uses: actions/checkout@v4
-      with:
-        ref: ${{ github.sha }}
     - id: version
       uses: ./get-next-version
     - name: Find existing bot draft release
