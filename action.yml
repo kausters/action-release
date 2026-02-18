@@ -1,0 +1,59 @@
+name: Release
+description: Creates or updates a draft GitHub release with auto-generated release notes
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ github.sha }}
+    - id: version
+      uses: ./get-next-version
+    - name: Find existing bot draft release
+      id: check-draft
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        DRAFT_TAG=$(gh api repos/{owner}/{repo}/releases --jq '[.[] | select(.draft==true) | select(.author.login=="github-actions[bot]") | .tag_name] | first // empty')
+        echo "draft-tag=$DRAFT_TAG" >> $GITHUB_OUTPUT
+    - name: Generate release notes
+      id: notes
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        VERSION: v${{ steps.version.outputs.version }}
+      run: |
+        NOTES=$(gh api repos/{owner}/{repo}/releases/generate-notes \
+          -f tag_name="$VERSION" \
+          -f target_commitish="${{ github.sha }}" \
+          --jq '.body')
+        echo "body<<EOF" >> $GITHUB_OUTPUT
+        echo "$NOTES" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+    - name: Update existing draft release
+      if: steps.check-draft.outputs.draft-tag != ''
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        VERSION: v${{ steps.version.outputs.version }}
+        NOTES_BODY: ${{ steps.notes.outputs.body }}
+      run: |
+        gh release edit "${{ steps.check-draft.outputs.draft-tag }}" \
+          --tag "$VERSION" \
+          --target ${{ github.sha }} \
+          --title "$VERSION" \
+          --notes "$NOTES_BODY"
+    - name: Create draft release
+      if: steps.check-draft.outputs.draft-tag == ''
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        VERSION: v${{ steps.version.outputs.version }}
+        NOTES_BODY: ${{ steps.notes.outputs.body }}
+      run: |
+        gh release create "$VERSION" \
+          --draft \
+          --target ${{ github.sha }} \
+          --title "$VERSION" \
+          --notes "$NOTES_BODY"

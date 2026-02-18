@@ -1,0 +1,47 @@
+name: Get Next Version
+description: Calculate the next version based on latest release and package.json
+
+outputs:
+  version:
+    description: The calculated next version
+    value: ${{ steps.calculate-version.outputs.version }}
+  latest:
+    description: The latest release version
+    value: ${{ steps.calculate-version.outputs.latest }}
+
+runs:
+  using: composite
+  steps:
+    - name: Calculate next version
+      id: calculate-version
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        LATEST_RELEASE=$(gh release list --exclude-drafts --limit 1 --json tagName --jq '.[0].tagName')
+
+        if [ -f "package.json" ]; then
+          PKG_VERSION=$(jq -r '.version' package.json)
+        else
+          PKG_VERSION=$(gh api "repos/$GITHUB_REPOSITORY/contents/package.json" --jq '.content' 2>/dev/null | base64 --decode | jq -r '.version' 2>/dev/null || echo "1.0.0")
+        fi
+
+        if [ -z "$LATEST_RELEASE" ]; then
+          NEXT_VERSION="$PKG_VERSION"
+        else
+          LATEST_VERSION=${LATEST_RELEASE#v}
+          LATEST_MAJOR=$(echo $LATEST_VERSION | cut -d. -f1)
+          LATEST_MINOR=$(echo $LATEST_VERSION | cut -d. -f2)
+          LATEST_PATCH=$(echo $LATEST_VERSION | cut -d. -f3)
+          PKG_MAJOR=$(echo $PKG_VERSION | cut -d. -f1)
+          PKG_MINOR=$(echo $PKG_VERSION | cut -d. -f2)
+
+          if [ "$PKG_MAJOR" -gt "$LATEST_MAJOR" ] || ([ "$PKG_MAJOR" -eq "$LATEST_MAJOR" ] && [ "$PKG_MINOR" -gt "$LATEST_MINOR" ]); then
+            NEXT_VERSION="$PKG_VERSION"
+          else
+            NEXT_VERSION="$LATEST_MAJOR.$LATEST_MINOR.$((LATEST_PATCH + 1))"
+          fi
+        fi
+
+        echo "latest=$LATEST_RELEASE" >> $GITHUB_OUTPUT
+        echo "version=$NEXT_VERSION" >> $GITHUB_OUTPUT

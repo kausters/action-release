@@ -1,0 +1,13 @@
+name: Float major version tag
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  tag:
+    runs-on: ubuntu-slim
+    permissions:
+      contents: write
+    steps:
+      - uses: ./float-major-tag

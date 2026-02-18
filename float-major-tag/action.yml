@@ -1,0 +1,18 @@
+name: Float major version tag
+description: Moves a floating major version tag (e.g. v1) to point at the newly published release
+
+runs:
+  using: composite
+  steps:
+    - name: Float major version tag
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        TAG="${{ github.event.release.tag_name }}"
+        SHA="${{ github.sha }}"
+        MAJOR="v$(echo "$TAG" | sed 's/^v//' | cut -d. -f1)"
+        gh api repos/$GITHUB_REPOSITORY/git/refs/tags/$MAJOR \
+          -X PATCH -f sha="$SHA" -F force=true \
+          || gh api repos/$GITHUB_REPOSITORY/git/refs \
+          -f ref="refs/tags/$MAJOR" -f sha="$SHA"
